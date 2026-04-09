@@ -9,7 +9,10 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
-from graphrag_llm.retry.exceptions_to_skip import _default_exceptions_to_skip
+from graphrag_llm.retry.exceptions_to_skip import (
+    _default_exceptions_to_skip,
+    should_skip_retry,
+)
 from graphrag_llm.retry.retry import Retry
 
 if TYPE_CHECKING:
@@ -69,7 +72,10 @@ class ExponentialRetry(Retry):
             try:
                 return func(**input_args)
             except Exception as e:
-                if e.__class__.__name__ in self._exceptions_to_skip:
+                if should_skip_retry(
+                    e,
+                    configured_exceptions_to_skip=self._exceptions_to_skip,
+                ):
                     raise
 
                 if retries >= self._max_retries:
@@ -101,7 +107,10 @@ class ExponentialRetry(Retry):
             try:
                 return await func(**input_args)
             except Exception as e:
-                if e.__class__.__name__ in self._exceptions_to_skip:
+                if should_skip_retry(
+                    e,
+                    configured_exceptions_to_skip=self._exceptions_to_skip,
+                ):
                     raise
                 if retries >= self._max_retries:
                     raise

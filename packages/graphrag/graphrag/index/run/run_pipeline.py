@@ -146,12 +146,21 @@ async def _run_pipeline(
                 break
 
         context.stats.total_runtime = time.time() - start_time
+        context.stats.status = "success"
+        context.stats.failed_workflow = None
+        context.stats.error_message = None
         logger.info("Indexing pipeline complete.")
         await _dump_stats_json(context)
         await _dump_context_json(context)
 
     except Exception as e:
+        context.stats.total_runtime = time.time() - start_time
+        context.stats.status = "failed"
+        context.stats.failed_workflow = last_workflow
+        context.stats.error_message = str(e)
         logger.exception("error running workflow %s", last_workflow)
+        await _dump_stats_json(context)
+        await _dump_context_json(context)
         yield PipelineRunResult(
             workflow=last_workflow, result=None, state=context.state, error=e
         )
@@ -187,3 +196,4 @@ async def _copy_previous_output(
     for table_name in output_table_provider.list():
         table = await output_table_provider.read_dataframe(table_name)
         await previous_table_provider.write_dataframe(table_name, table)
+
