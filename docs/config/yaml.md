@@ -41,6 +41,25 @@ embedding_models:
     api_key: ${GRAPHRAG_API_KEY}
 ```
 
+Using `shell_command` authentication (e.g. for SSO/federated identity tools):
+
+```yml
+completion_models:
+  default_completion_model:
+    model_provider: openai
+    model: gpt-4.1
+    auth_method: shell_command
+    token_command: "my-sso-tool get-token"
+    token_ttl: 3300  # seconds; default is 3300 (55 min)
+
+embedding_models:
+  default_embedding_model:
+    model_provider: openai
+    model: text-embedding-3-large
+    auth_method: shell_command
+    token_command: "my-sso-tool get-token"
+```
+
 #### Fields
 
 - `type` **litellm|mock** - The type of LLM provider to use. GraphRAG uses [LiteLLM](https://docs.litellm.ai/) for calling language models.
@@ -50,7 +69,9 @@ embedding_models:
 - `api_key` **str|None** - The OpenAI API key to use.
 - `api_base` **str|None** - The API base url to use.
 - `api_version` **str|None** - The API version.
-- `auth_method` **api_key|azure_managed_identity** - Indicate how you want to authenticate requests.
+- `auth_method` **api_key|azure_managed_identity|shell_command** - Indicate how you want to authenticate requests.
+- `token_command` **str|None** - Shell command that prints a bearer token to stdout. Required when `auth_method=shell_command`. The token is cached for `token_ttl` seconds before the command is re-run. Each command run uses a fixed internal timeout of 30 seconds. For Azure providers the token is passed as an `azure_ad_token`; for all other providers it is passed as the `api_key`.
+- `token_ttl` **int** - Seconds to cache the token produced by `token_command` before re-running it. Default=`3300` (55 minutes).
 - `azure_deployment_name` **str|None** - The deployment name to use if your model is hosted on Azure. Note that if your deployment name on Azure matches the model name, this is unnecessary.
 - retry **RetryConfig|None** - Retry settings. default=`None`, no retries.
   - type **exponential_backoff|immediate** - Type of retry approach. default=`exponential_backoff`

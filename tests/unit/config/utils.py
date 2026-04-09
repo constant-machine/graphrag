@@ -96,6 +96,8 @@ def assert_model_configs(actual: ModelConfig, expected: ModelConfig) -> None:
     assert actual.api_version == expected.api_version
     assert actual.api_key == expected.api_key
     assert actual.auth_method == expected.auth_method
+    assert actual.token_command == expected.token_command
+    assert actual.token_ttl == expected.token_ttl
     assert actual.azure_deployment_name == expected.azure_deployment_name
     if actual.retry and expected.retry:
         assert_retry_configs(actual.retry, expected.retry)
