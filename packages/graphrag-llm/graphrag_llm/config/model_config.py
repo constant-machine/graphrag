@@ -60,6 +60,16 @@ class ModelConfig(BaseModel):
         description="The authentication method to use. (default: api_key)",
     )
 
+    token_command: str | None = Field(
+        default=None,
+        description="Shell command that prints a bearer token to stdout. Used when auth_method=shell_command.",
+    )
+
+    token_ttl: int = Field(
+        default=3300,
+        description="Seconds to cache the token before re-running token_command. (default: 3300 = 55 min)",
+    )
+
     azure_deployment_name: str | None = Field(
         default=None,
         description="The deployment name for Azure models.",
@@ -98,6 +108,13 @@ class ModelConfig(BaseModel):
         if self.auth_method == AuthMethod.AzureManagedIdentity:
             if self.api_key is not None:
                 msg = "api_key should not be set when using Azure Managed Identity."
+                raise ValueError(msg)
+        elif self.auth_method == AuthMethod.ShellCommand:
+            if self.api_key is not None:
+                msg = "api_key should not be set when using shell_command auth."
+                raise ValueError(msg)
+            if not self.token_command:
+                msg = "token_command must be set when auth_method=shell_command."
                 raise ValueError(msg)
         elif not self.api_key:
             msg = "api_key must be set when auth_method=api_key."

@@ -28,6 +28,65 @@ embedding_models:
 
 See [Detailed Configuration](yaml.md) for more details on configuration. [View LiteLLM basic usage](https://docs.litellm.ai/docs/#basic-usage) for details on how models are called (The `model_provider` is the portion prior to `/` while the `model` is the portion following the `/`).
 
+## Authentication Methods
+
+GraphRAG supports three ways to authenticate requests to LLM providers.
+
+### API Key (`api_key`)
+
+The default method. Set `auth_method: api_key` and supply the key via `api_key` (or an environment variable reference):
+
+```yaml
+completion_models:
+  default_completion_model:
+    model_provider: openai
+    model: gpt-4.1
+    auth_method: api_key
+    api_key: ${GRAPHRAG_API_KEY}
+```
+
+### Azure Managed Identity (`azure_managed_identity`)
+
+For Azure-hosted models where credentials are managed by the platform. Remove `api_key` and set:
+
+```yaml
+completion_models:
+  default_completion_model:
+    model_provider: azure
+    model: gpt-4.1
+    azure_deployment_name: my-gpt4-deployment
+    api_base: https://<instance>.openai.azure.com
+    api_version: 2024-02-15-preview
+    auth_method: azure_managed_identity
+```
+
+Requires an active Azure login (`az login`) with access to the target subscription.
+
+### Shell Command (`shell_command`)
+
+Obtains a bearer token by running an arbitrary shell command. The command must print the token to stdout. The token is cached for `token_ttl` seconds (default 3300, i.e. 55 minutes) before the command is re-run. Each command run uses a fixed internal timeout of 30 seconds.
+
+This is useful for SSO tools, federated identity providers, or any scenario where tokens are issued by an external CLI:
+
+```yaml
+completion_models:
+  default_completion_model:
+    model_provider: openai
+    model: gpt-4.1
+    auth_method: shell_command
+    token_command: "my-sso-tool get-token"  # must print token to stdout
+    token_ttl: 3300                          # optional, seconds to cache token
+
+embedding_models:
+  default_embedding_model:
+    model_provider: openai
+    model: text-embedding-3-large
+    auth_method: shell_command
+    token_command: "my-sso-tool get-token"
+```
+
+For Azure providers the token is passed as an Azure AD token; for all other providers it is passed as the `api_key`. `api_key` must not be set when using `shell_command`.
+
 ## Model Selection Considerations
 
 GraphRAG has been most thoroughly tested with the gpt-4 series of models from OpenAI, including gpt-4 gpt-4-turbo, gpt-4o, and gpt-4o-mini. Our [arXiv paper](https://arxiv.org/abs/2404.16130), for example, performed quality evaluation using gpt-4-turbo. As stated above, non-OpenAI models are supported through the use of LiteLLM but the suite of gpt-4 series of models from OpenAI remain the most tested and supported suite of models for GraphRAG – in other words, these are the models we know best and can help resolve issues with.

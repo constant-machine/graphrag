@@ -6,9 +6,8 @@
 from typing import TYPE_CHECKING, Any, Unpack
 
 import litellm
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-from graphrag_llm.config.types import AuthMethod
+from graphrag_llm._litellm_auth import build_litellm_auth_binding
 from graphrag_llm.embedding.embedding import LLMEmbedding
 from graphrag_llm.middleware import with_middleware_pipeline
 from graphrag_llm.types import LLMEmbeddingResponse
@@ -166,33 +165,50 @@ def _create_base_embeddings(
     """Create base embedding functions."""
     model_provider = model_config.model_provider
     model = model_config.azure_deployment_name or model_config.model
+    auth_binding = build_litellm_auth_binding(
+        model_config=model_config,
+        azure_cognitive_services_audience=azure_cognitive_services_audience,
+    )
 
     base_args: dict[str, Any] = {
         "drop_params": drop_unsupported_params,
         "model": f"{model_provider}/{model}",
-        "api_key": model_config.api_key,
         "api_base": model_config.api_base,
         "api_version": model_config.api_version,
         **model_config.call_args,
+        **auth_binding.static_args,
     }
 
-    if model_config.auth_method == AuthMethod.AzureManagedIdentity:
-        base_args["azure_ad_token_provider"] = get_bearer_token_provider(
-            DefaultAzureCredential(), azure_cognitive_services_audience
-        )
+    def _call_embedding_with_auth_refresh(args: dict[str, Any]) -> Any:
+        try:
+            return litellm.embedding(**args)
+        except Exception as e:
+            refreshed_args = auth_binding.try_refresh_request(args, e)
+            if refreshed_args is None:
+                raise
+            return litellm.embedding(**refreshed_args)
+
+    async def _call_embedding_with_auth_refresh_async(args: dict[str, Any]) -> Any:
+        try:
+            return await litellm.aembedding(**args)
+        except Exception as e:
+            refreshed_args = await auth_binding.try_refresh_request_async(args, e)
+            if refreshed_args is None:
+                raise
+            return await litellm.aembedding(**refreshed_args)
 
     def _base_embedding(**kwargs: Any) -> LLMEmbeddingResponse:
         kwargs.pop("metrics", None)  # Remove metrics if present
-        new_args: dict[str, Any] = {**base_args, **kwargs}
+        new_args = auth_binding.prepare_request({**base_args, **kwargs})
 
-        response = litellm.embedding(**new_args)
+        response = _call_embedding_with_auth_refresh(new_args)
         return LLMEmbeddingResponse(**response.model_dump())
 
     async def _base_embedding_async(**kwargs: Any) -> LLMEmbeddingResponse:
         kwargs.pop("metrics", None)  # Remove metrics if present
-        new_args: dict[str, Any] = {**base_args, **kwargs}
+        new_args = await auth_binding.prepare_request_async({**base_args, **kwargs})
 
-        response = await litellm.aembedding(**new_args)
+        response = await _call_embedding_with_auth_refresh_async(new_args)
         return LLMEmbeddingResponse(**response.model_dump())
 
     return _base_embedding, _base_embedding_async
