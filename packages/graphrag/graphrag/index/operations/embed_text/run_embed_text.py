@@ -14,6 +14,7 @@ from graphrag_llm.tokenizer import Tokenizer
 
 from graphrag.callbacks.workflow_callbacks import WorkflowCallbacks
 from graphrag.index.utils.is_null import is_null
+from graphrag.index.utils.async_tasks import gather_with_context
 from graphrag.logger.progress import ProgressTicker, progress_ticker
 
 if TYPE_CHECKING:
@@ -81,13 +82,22 @@ async def _execute(
 ) -> list[list[float]]:
     async def embed(chunk: list[str]):
         async with semaphore:
-            embeddings_response = await model.embedding_async(input=chunk)
-            result = np.array(embeddings_response.embeddings)
-            tick(1)
-        return result
+            try:
+                embeddings_response = await model.embedding_async(input=chunk)
+                return np.array(embeddings_response.embeddings)
+            finally:
+                tick(1)
 
     futures = [embed(chunk) for chunk in chunks]
-    results = await asyncio.gather(*futures)
+    contexts = [
+        f"batch={index + 1}/{len(chunks)} texts={len(chunk)}"
+        for index, chunk in enumerate(chunks)
+    ]
+    results = await gather_with_context(
+        futures,
+        contexts=contexts,
+        operation="text embedding",
+    )
     # merge results in a single list of lists (reduce the collect dimension)
     return [item for sublist in results for item in sublist]
 

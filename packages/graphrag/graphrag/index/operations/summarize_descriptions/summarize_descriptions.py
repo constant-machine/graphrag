@@ -16,6 +16,7 @@ from graphrag.index.operations.summarize_descriptions.description_summary_extrac
 from graphrag.index.operations.summarize_descriptions.typing import (
     SummarizedDescriptionResult,
 )
+from graphrag.index.utils.async_tasks import gather_with_context
 from graphrag.logger.progress import ProgressTicker, progress_ticker
 
 if TYPE_CHECKING:
@@ -56,8 +57,12 @@ async def summarize_descriptions(
             )
             for row in nodes.itertuples(index=False)
         ]
-
-        node_results = await asyncio.gather(*node_futures)
+        node_contexts = [f"entity={row.title}" for row in nodes.itertuples(index=False)]
+        node_results = await gather_with_context(
+            node_futures,
+            contexts=node_contexts,
+            operation="description summarization",
+        )
 
         node_descriptions = [
             {
@@ -76,8 +81,15 @@ async def summarize_descriptions(
             )
             for row in edges.itertuples(index=False)
         ]
-
-        edge_results = await asyncio.gather(*edge_futures)
+        edge_contexts = [
+            f"relationship={row.source}->{row.target}"
+            for row in edges.itertuples(index=False)
+        ]
+        edge_results = await gather_with_context(
+            edge_futures,
+            contexts=edge_contexts,
+            operation="description summarization",
+        )
 
         edge_descriptions = [
             {
@@ -99,16 +111,17 @@ async def summarize_descriptions(
         semaphore: asyncio.Semaphore,
     ):
         async with semaphore:
-            results = await run_summarize_descriptions(
-                id,
-                descriptions,
-                model,
-                max_summary_length,
-                max_input_tokens,
-                prompt,
-            )
-            ticker(1)
-        return results
+            try:
+                return await run_summarize_descriptions(
+                    id,
+                    descriptions,
+                    model,
+                    max_summary_length,
+                    max_input_tokens,
+                    prompt,
+                )
+            finally:
+                ticker(1)
 
     semaphore = asyncio.Semaphore(num_threads)
 

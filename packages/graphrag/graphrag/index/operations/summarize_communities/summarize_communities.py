@@ -27,6 +27,7 @@ from graphrag.index.operations.summarize_communities.utils import (
 )
 from graphrag.index.utils.derive_from_rows import derive_from_rows
 from graphrag.logger.progress import progress_ticker
+from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 
 if TYPE_CHECKING:
     from graphrag_llm.completion import LLMCompletion
@@ -159,6 +160,8 @@ async def run_extractor(
             ],
             full_content_json=report.model_dump_json(indent=4),
         )
-    except Exception:
+    except Exception as e:
+        if is_provider_exception(e):
+            raise
         logger.exception("Error processing community: %s", community)
         return None
