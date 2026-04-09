@@ -24,7 +24,10 @@ class ConsoleWorkflowCallbacks(NoopWorkflowCallbacks):
 
     def pipeline_end(self, results: list[PipelineRunResult]) -> None:
         """Execute this callback to signal when the entire pipeline ends."""
-        print("Pipeline complete")
+        if any(result.error is not None for result in results):
+            print("Pipeline failed")
+        else:
+            print("Pipeline complete")
 
     def workflow_start(self, name: str, instance: object) -> None:
         """Execute this callback when a workflow starts."""

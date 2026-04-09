@@ -16,6 +16,8 @@ INIT_YAML = f"""\
 ### LLM settings ###
 ## There are a number of settings to tune the threading and token limits for LLM calls - check the docs.
 
+concurrent_requests: {defs.SAFE_CONCURRENT_REQUESTS_WITHOUT_RATE_LIMIT}
+
 completion_models:
   {defs.DEFAULT_COMPLETION_MODEL_ID}:
     model_provider: {defs.DEFAULT_MODEL_PROVIDER}
@@ -26,6 +28,9 @@ completion_models:
     # token_ttl: 3300                          # seconds to cache token (default: 55 min)
     retry:
       type: exponential_backoff
+    # rate_limit:
+    #   type: sliding_window
+    #   requests_per_period: 60
 
 embedding_models:
   {defs.DEFAULT_EMBEDDING_MODEL_ID}:
@@ -37,6 +42,9 @@ embedding_models:
     # token_ttl: 3300                          # seconds to cache token (default: 55 min)
     retry:
       type: exponential_backoff
+    # rate_limit:
+    #   type: sliding_window
+    #   requests_per_period: 120
 
 ### Document processing settings ###
 

@@ -35,6 +35,7 @@ DEFAULT_EMBEDDING_MODEL_ID = "default_embedding_model"
 DEFAULT_EMBEDDING_MODEL_AUTH_TYPE = AuthMethod.ApiKey
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-large"
 DEFAULT_MODEL_PROVIDER = "openai"
+SAFE_CONCURRENT_REQUESTS_WITHOUT_RATE_LIMIT = 8
 
 ENCODING_MODEL = "o200k_base"
 COGNITIVE_SERVICES_AUDIENCE = "https://cognitiveservices.azure.com/.default"

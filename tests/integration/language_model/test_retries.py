@@ -13,6 +13,24 @@ from graphrag_llm.config import RetryConfig, RetryType
 from graphrag_llm.retry import create_retry
 
 
+class UnknownLiteLLMError(Exception):
+    """Provider exception class without explicit retry classification."""
+
+
+UnknownLiteLLMError.__module__ = "litellm.tests"
+
+
+class UnknownLiteLLMStatusError(Exception):
+    """Provider exception class with an attached HTTP status code."""
+
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+UnknownLiteLLMStatusError.__module__ = "litellm.tests"
+
+
 @pytest.mark.parametrize(
     ("config", "max_retries", "expected_time"),
     [
@@ -196,18 +214,6 @@ async def test_retries_async(
             ],
         ),
         (
-            "APIConnectionError",
-            ["Oh no!", "", ""],
-        ),
-        (
-            "APIError",
-            [500, "Oh no!", "", ""],
-        ),
-        (
-            "ServiceUnavailableError",
-            ["Oh no!", "", ""],
-        ),
-        (
             "APIResponseValidationError",
             ["Oh no!", "", ""],
         ),
@@ -241,3 +247,130 @@ def test_exponential_backoff_skipping_exceptions(
     assert retries == 0, (
         f"Expected not to retry for '{exception}' exception. Got {retries} retries."
     )
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        (
+            RetryConfig(
+                type=RetryType.ExponentialBackoff,
+                max_retries=3,
+                base_delay=2.0,
+                jitter=False,
+            )
+        ),
+        (
+            RetryConfig(
+                type=RetryType.Immediate,
+                max_retries=3,
+            )
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("exception", "exception_args"),
+    [
+        (
+            "BadGatewayError",
+            ["Oh no!", "", ""],
+        ),
+        (
+            "RateLimitError",
+            ["Oh no!", "", ""],
+        ),
+        (
+            "APIConnectionError",
+            ["Oh no!", "", ""],
+        ),
+        (
+            "ServiceUnavailableError",
+            ["Oh no!", "", ""],
+        ),
+        (
+            "APIError",
+            [500, "Oh no!", "", ""],
+        ),
+    ],
+)
+def test_transient_provider_exceptions_are_retried(
+    config: RetryConfig, exception: str, exception_args: list[Any]
+) -> None:
+    """Transient provider exceptions should consume the full retry budget."""
+    retry_service = create_retry(config)
+
+    retries = -1
+    exception_cls = exceptions.__dict__[exception]
+
+    def mock_func():
+        nonlocal retries
+        retries += 1
+        raise exception_cls(*exception_args)
+
+    with pytest.raises(exception_cls, match="Oh no!"):
+        retry_service.retry(func=mock_func, input_args={})
+
+    assert retries == 3, (
+        f"Expected transient exception '{exception}' to retry 3 times. Got {retries} retries."
+    )
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        RetryConfig(
+            type=RetryType.ExponentialBackoff,
+            max_retries=3,
+            base_delay=2.0,
+            jitter=False,
+        ),
+        RetryConfig(
+            type=RetryType.Immediate,
+            max_retries=3,
+        ),
+    ],
+)
+def test_unknown_provider_exceptions_retry_by_default(config: RetryConfig) -> None:
+    retry_service = create_retry(config)
+    retries = -1
+
+    def mock_func():
+        nonlocal retries
+        retries += 1
+        raise UnknownLiteLLMError("Oh no!")
+
+    with pytest.raises(UnknownLiteLLMError, match="Oh no!"):
+        retry_service.retry(func=mock_func, input_args={})
+
+    assert retries == 3
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_retries"),
+    [
+        (400, 0),
+        (408, 3),
+        (429, 3),
+        (500, 3),
+    ],
+)
+def test_unknown_provider_exceptions_follow_status_code_classification(
+    status_code: int, expected_retries: int
+) -> None:
+    retry_service = create_retry(
+        RetryConfig(
+            type=RetryType.Immediate,
+            max_retries=3,
+        )
+    )
+    retries = -1
+
+    def mock_func():
+        nonlocal retries
+        retries += 1
+        raise UnknownLiteLLMStatusError("Oh no!", status_code)
+
+    with pytest.raises(UnknownLiteLLMStatusError, match="Oh no!"):
+        retry_service.retry(func=mock_func, input_args={})
+
+    assert retries == expected_retries

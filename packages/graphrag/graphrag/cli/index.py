@@ -16,6 +16,7 @@ from graphrag.callbacks.console_workflow_callbacks import ConsoleWorkflowCallbac
 from graphrag.config.enums import IndexingMethod
 from graphrag.config.load_config import load_config
 from graphrag.index.validate_config import validate_config_names
+from graphrag.utils.litellm import close_litellm_async_clients
 from graphrag.utils.cli import redact
 
 # Ignore warnings from numba
@@ -107,7 +108,7 @@ def _run_index(
         config.cache.type = CacheType.Noop
 
     if not skip_validation:
-        validate_config_names(config)
+        validate_config_names(config, method=method, is_update_run=is_update_run)
 
     logger.info("Starting pipeline run. %s", dry_run)
     logger.info(
@@ -122,14 +123,34 @@ def _run_index(
     _register_signal_handlers()
 
     outputs = asyncio.run(
-        api.build_index(
+        _build_index_with_cleanup(
             config=config,
             method=method,
             is_update_run=is_update_run,
-            callbacks=[ConsoleWorkflowCallbacks(verbose=verbose)],
             verbose=verbose,
+            callbacks=[ConsoleWorkflowCallbacks(verbose=verbose)],
         )
     )
     encountered_errors = any(output.error is not None for output in outputs)
 
     sys.exit(1 if encountered_errors else 0)
+
+
+async def _build_index_with_cleanup(
+    *,
+    config,
+    method,
+    is_update_run,
+    verbose,
+    callbacks,
+):
+    try:
+        return await api.build_index(
+            config=config,
+            method=method,
+            is_update_run=is_update_run,
+            callbacks=callbacks,
+            verbose=verbose,
+        )
+    finally:
+        await close_litellm_async_clients()

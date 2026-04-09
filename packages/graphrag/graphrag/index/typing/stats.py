@@ -27,6 +27,15 @@ class WorkflowMetrics:
 class PipelineRunStats:
     """Pipeline running stats."""
 
+    status: str = field(default="running")
+    """Overall run status: running, success, or failed."""
+
+    failed_workflow: str | None = field(default=None)
+    """Name of the workflow that failed, when available."""
+
+    error_message: str | None = field(default=None)
+    """String form of the terminal pipeline error, when available."""
+
     total_runtime: float = field(default=0)
     """Float representing the total runtime."""
 

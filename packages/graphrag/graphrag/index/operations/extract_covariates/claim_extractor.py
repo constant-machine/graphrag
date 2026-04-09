@@ -8,6 +8,7 @@ import traceback
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 from graphrag_llm.utils import (
     CompletionMessagesBuilder,
 )
@@ -84,12 +85,24 @@ class ClaimExtractor:
                 claims = await self._process_document(
                     text, claim_description, entity_spec
                 )
+            except Exception as e:
+                if is_provider_exception(e):
+                    raise
+                logger.exception("error extracting claim")
+                self._on_error(
+                    e,
+                    traceback.format_exc(),
+                    {"doc_index": doc_index, "text": text},
+                )
+                raise
+
+            try:
                 all_claims += [
                     self._clean_claim(c, document_id, resolved_entities) for c in claims
                 ]
                 source_doc_map[document_id] = text
             except Exception as e:
-                logger.exception("error extracting claim")
+                logger.exception("error parsing extracted claim")
                 self._on_error(
                     e,
                     traceback.format_exc(),

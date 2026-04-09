@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from graphrag.index.typing.error_handler import ErrorHandlerFn
+from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 
 if TYPE_CHECKING:
     from graphrag_llm.completion import LLMCompletion
@@ -86,6 +87,8 @@ class CommunityReportsExtractor:
 
             output = response.formatted_response  # type: ignore
         except Exception as e:
+            if is_provider_exception(e):
+                raise
             logger.exception("error generating community report")
             self._on_error(e, traceback.format_exc(), None)
 

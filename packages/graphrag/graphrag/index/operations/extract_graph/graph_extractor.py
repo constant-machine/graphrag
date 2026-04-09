@@ -60,11 +60,17 @@ class GraphExtractor:
         self, text: str, entity_types: list[str], source_id: str
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Extract entities and relationships from the supplied text."""
+        result = await self._process_document(text, entity_types)
+
         try:
-            # Invoke the entity extraction
-            result = await self._process_document(text, entity_types)
+            return self._process_result(
+                result,
+                source_id,
+                TUPLE_DELIMITER,
+                RECORD_DELIMITER,
+            )
         except Exception as e:  # pragma: no cover - defensive logging
-            logger.exception("error extracting graph")
+            logger.exception("error parsing extracted graph response")
             self._on_error(
                 e,
                 traceback.format_exc(),
@@ -74,13 +80,6 @@ class GraphExtractor:
                 },
             )
             return _empty_entities_df(), _empty_relationships_df()
-
-        return self._process_result(
-            result,
-            source_id,
-            TUPLE_DELIMITER,
-            RECORD_DELIMITER,
-        )
 
     async def _process_document(self, text: str, entity_types: list[str]) -> str:
         messages_builder = CompletionMessagesBuilder().add_user_message(
