@@ -84,6 +84,50 @@ def test_litellm_provider_validation() -> None:
             model="gpt-4o",
         )
 
+    with pytest.raises(
+        ValueError,
+        match="token_command must be set when auth_method=shell_command\\.",
+    ):
+        _ = ModelConfig(
+            type=LLMProviderType.LiteLLM,
+            model_provider="openai",
+            model="gpt-4o",
+            auth_method=AuthMethod.ShellCommand,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="api_key should not be set when using shell_command auth\\.",
+    ):
+        _ = ModelConfig(
+            type=LLMProviderType.LiteLLM,
+            model_provider="openai",
+            model="gpt-4o",
+            auth_method=AuthMethod.ShellCommand,
+            token_command="my-sso-tool get-token",
+            api_key="some-api-key",
+        )
+
+    # pass validation — shell_command with openai provider
+    _ = ModelConfig(
+        type=LLMProviderType.LiteLLM,
+        model_provider="openai",
+        model="gpt-4o",
+        auth_method=AuthMethod.ShellCommand,
+        token_command="my-sso-tool get-token",
+    )
+
+    # pass validation — shell_command with azure provider
+    _ = ModelConfig(
+        type=LLMProviderType.LiteLLM,
+        model_provider="azure",
+        model="gpt-4o",
+        azure_deployment_name="gpt-4o",
+        api_base="https://my-azure-endpoint/",
+        auth_method=AuthMethod.ShellCommand,
+        token_command="my-sso-tool get-token",
+    )
+
     # pass validation
     _ = ModelConfig(
         type=LLMProviderType.LiteLLM,
