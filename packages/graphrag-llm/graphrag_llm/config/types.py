@@ -19,6 +19,7 @@ class AuthMethod(StrEnum):
 
     ApiKey = "api_key"
     AzureManagedIdentity = "azure_managed_identity"
+    ShellCommand = "shell_command"
 
 
 class MetricsProcessorType(StrEnum):

@@ -7,11 +7,10 @@ from collections.abc import AsyncIterator, Iterator
 from typing import TYPE_CHECKING, Any, Unpack
 
 import litellm
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from litellm import ModelResponse  # type: ignore
 
+from graphrag_llm._litellm_auth import build_litellm_auth_binding
 from graphrag_llm.completion.completion import LLMCompletion
-from graphrag_llm.config.types import AuthMethod
 from graphrag_llm.middleware import (
     with_middleware_pipeline,
 )
@@ -233,20 +232,37 @@ def _create_base_completions(
     """
     model_provider = model_config.model_provider
     model = model_config.azure_deployment_name or model_config.model
+    auth_binding = build_litellm_auth_binding(
+        model_config=model_config,
+        azure_cognitive_services_audience=azure_cognitive_services_audience,
+    )
 
     base_args: dict[str, Any] = {
         "drop_params": drop_unsupported_params,
         "model": f"{model_provider}/{model}",
-        "api_key": model_config.api_key,
         "api_base": model_config.api_base,
         "api_version": model_config.api_version,
         **model_config.call_args,
+        **auth_binding.static_args,
     }
 
-    if model_config.auth_method == AuthMethod.AzureManagedIdentity:
-        base_args["azure_ad_token_provider"] = get_bearer_token_provider(
-            DefaultAzureCredential(), azure_cognitive_services_audience
-        )
+    def _call_completion_with_auth_refresh(args: dict[str, Any]) -> Any:
+        try:
+            return litellm.completion(**args)
+        except Exception as e:
+            refreshed_args = auth_binding.try_refresh_request(args, e)
+            if refreshed_args is None:
+                raise
+            return litellm.completion(**refreshed_args)
+
+    async def _call_completion_with_auth_refresh_async(args: dict[str, Any]) -> Any:
+        try:
+            return await litellm.acompletion(**args)
+        except Exception as e:
+            refreshed_args = await auth_binding.try_refresh_request_async(args, e)
+            if refreshed_args is None:
+                raise
+            return await litellm.acompletion(**refreshed_args)
 
     def _base_completion(
         **kwargs: Any,
@@ -254,7 +270,7 @@ def _create_base_completions(
         kwargs.pop("metrics", None)
         mock_response: str | None = kwargs.pop("mock_response", None)
         json_object: bool | None = kwargs.pop("response_format_json_object", None)
-        new_args: dict[str, Any] = {**base_args, **kwargs}
+        new_args = auth_binding.prepare_request({**base_args, **kwargs})
 
         if model_config.mock_responses and mock_response is not None:
             new_args["mock_response"] = mock_response
@@ -262,9 +278,7 @@ def _create_base_completions(
         if json_object and "response_format" not in new_args:
             new_args["response_format"] = {"type": "json_object"}
 
-        response = litellm.completion(
-            **new_args,
-        )
+        response = _call_completion_with_auth_refresh(new_args)
         if isinstance(response, ModelResponse):
             return LLMCompletionResponse(**response.model_dump())
 
@@ -280,7 +294,7 @@ def _create_base_completions(
         kwargs.pop("metrics", None)
         mock_response: str | None = kwargs.pop("mock_response", None)
         json_object: bool | None = kwargs.pop("response_format_json_object", None)
-        new_args: dict[str, Any] = {**base_args, **kwargs}
+        new_args = await auth_binding.prepare_request_async({**base_args, **kwargs})
 
         if model_config.mock_responses and mock_response is not None:
             new_args["mock_response"] = mock_response
@@ -288,9 +302,7 @@ def _create_base_completions(
         if json_object and "response_format" not in new_args:
             new_args["response_format"] = {"type": "json_object"}
 
-        response = await litellm.acompletion(
-            **new_args,
-        )
+        response = await _call_completion_with_auth_refresh_async(new_args)
         if isinstance(response, ModelResponse):
             return LLMCompletionResponse(**response.model_dump())
 
