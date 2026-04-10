@@ -28,6 +28,10 @@ completion_models:
     # token_ttl: 3300                          # seconds to cache token (default: 55 min)
     retry:
       type: exponential_backoff
+      max_retries: 8
+      base_delay: 2.0
+      max_delay: 30
+      jitter: true
     # rate_limit:
     #   type: sliding_window
     #   requests_per_period: 60
@@ -42,6 +46,10 @@ embedding_models:
     # token_ttl: 3300                          # seconds to cache token (default: 55 min)
     retry:
       type: exponential_backoff
+      max_retries: 8
+      base_delay: 2.0
+      max_delay: 30
+      jitter: true
     # rate_limit:
     #   type: sliding_window
     #   requests_per_period: 120
