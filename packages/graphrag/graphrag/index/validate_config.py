@@ -29,10 +29,14 @@ def validate_config_names(
     is_update_run: bool = False,
 ) -> None:
     """Validate config file for model deployment name typos, by running a quick test message for each."""
+    workflows = _resolve_workflows(
+        parameters, method=method, is_update_run=is_update_run
+    )
     _warn_on_aggressive_concurrency(
         parameters,
-        workflows=_resolve_workflows(parameters, method=method, is_update_run=is_update_run),
+        workflows=workflows,
     )
+    _warn_on_missing_retry(parameters, workflows=workflows)
     for id, config in parameters.completion_models.items():
         llm = create_completion(config)
         try:
@@ -131,6 +135,30 @@ def _warn_on_aggressive_concurrency(
             "concurrent_requests or configuring rate_limit.",
             parameters.concurrent_requests,
             ", ".join(sorted(model_ids_without_limits)),
+        )
+
+
+def _warn_on_missing_retry(
+    parameters: GraphRagConfig,
+    *,
+    workflows: list[str],
+) -> None:
+    active_model_ids = _get_active_model_ids(parameters, workflows=workflows)
+    model_ids_without_retry = [
+        model_id
+        for model_id, config in (
+            list(parameters.completion_models.items())
+            + list(parameters.embedding_models.items())
+        )
+        if model_id in active_model_ids and config.retry is None
+    ]
+    if model_ids_without_retry:
+        logger.warning(
+            "No retry configured for active indexing models %s. Transient provider "
+            "errors will fail fast; consider exponential_backoff retries and, if you "
+            "see 502/503 errors, lowering concurrent_requests into the 4-8 range and "
+            "configuring rate_limit.",
+            ", ".join(sorted(model_ids_without_retry)),
         )
 
 

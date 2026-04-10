@@ -4,8 +4,12 @@
 import logging
 
 import graphrag.config.defaults as defs
-from graphrag.index.validate_config import _warn_on_aggressive_concurrency
-from graphrag_llm.config import RateLimitConfig
+from graphrag.index.validate_config import (
+    _warn_on_aggressive_concurrency,
+    _warn_on_missing_retry,
+)
+from graphrag_llm.config import RateLimitConfig, RetryConfig
+from graphrag_llm.config.types import RetryType
 
 from tests.unit.config.utils import (
     DEFAULT_COMPLETION_MODEL_CONFIG,
@@ -43,3 +47,49 @@ def test_warn_on_aggressive_concurrency_reports_only_active_models(caplog) -> No
     assert defs.DEFAULT_EMBEDDING_MODEL_ID in caplog.messages[0]
     assert "backup_completion_model" not in caplog.messages[0]
     assert "backup_embedding_model" not in caplog.messages[0]
+
+
+def test_warn_on_missing_retry_for_active_models(caplog) -> None:
+    config = get_default_graphrag_config()
+    config.workflows = ["extract_graph"]
+
+    with caplog.at_level(logging.WARNING):
+        _warn_on_missing_retry(config, workflows=config.workflows)
+
+    assert len(caplog.messages) == 1
+    assert defs.DEFAULT_COMPLETION_MODEL_ID in caplog.messages[0]
+
+
+def test_warn_on_missing_retry_ignores_unused_models(caplog) -> None:
+    config = get_default_graphrag_config()
+    config.workflows = ["generate_text_embeddings"]
+    config.embedding_models[defs.DEFAULT_EMBEDDING_MODEL_ID].retry = RetryConfig(
+        type=RetryType.ExponentialBackoff,
+        max_retries=8,
+        base_delay=2.0,
+        max_delay=30,
+        jitter=True,
+    )
+    config.completion_models["backup_completion_model"] = DEFAULT_COMPLETION_MODEL_CONFIG
+
+    with caplog.at_level(logging.WARNING):
+        _warn_on_missing_retry(config, workflows=config.workflows)
+
+    assert caplog.messages == []
+
+
+def test_warn_on_missing_retry_skips_active_models_with_retry(caplog) -> None:
+    config = get_default_graphrag_config()
+    config.workflows = ["extract_graph"]
+    config.completion_models[defs.DEFAULT_COMPLETION_MODEL_ID].retry = RetryConfig(
+        type=RetryType.ExponentialBackoff,
+        max_retries=8,
+        base_delay=2.0,
+        max_delay=30,
+        jitter=True,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        _warn_on_missing_retry(config, workflows=config.workflows)
+
+    assert caplog.messages == []

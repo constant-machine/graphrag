@@ -2,13 +2,13 @@
     "status": "success",
     "failed_workflow": null,
     "error_message": null,
-    "total_runtime": 0.00213623046875,
+    "total_runtime": 0.0012829303741455078,
     "num_documents": 0,
     "update_documents": 0,
     "input_load_time": 0,
     "workflows": {
         "extract_graph": {
-            "overall": 1.1920928955078125e-05,
+            "overall": 7.867813110351562e-06,
             "peak_memory_bytes": 544,
             "memory_delta_bytes": 312,
             "tracemalloc_overhead_bytes": 912
