@@ -73,12 +73,14 @@ embedding_models:
 - `token_command` **str|None** - Shell command that prints a bearer token to stdout. Required when `auth_method=shell_command`. The token is cached for `token_ttl` seconds before the command is re-run. Each command run uses a fixed internal timeout of 30 seconds. For Azure providers the token is passed as an `azure_ad_token`; for all other providers it is passed as the `api_key`.
 - `token_ttl` **int** - Seconds to cache the token produced by `token_command` before re-running it. Default=`3300` (55 minutes).
 - `azure_deployment_name` **str|None** - The deployment name to use if your model is hosted on Azure. Note that if your deployment name on Azure matches the model name, this is unnecessary.
-- retry **RetryConfig|None** - Retry settings. default=`None`, no retries.
+- retry **RetryConfig|None** - Retry settings. default=`None`, no retries. If this block is omitted, transient provider failures are not retried.
   - type **exponential_backoff|immediate** - Type of retry approach. default=`exponential_backoff`
   - max_retries **int|None** - Max retries to take. default=`7`.
   - base_delay **float|None** - Base delay when using `exponential_backoff`. default=`2.0`.
   - jitter **bool|None** - Add jitter to retry delays when using `exponential_backoff`. default=`True`
   - max_delay **float|None** - Maximum retry delay. default=`None`, no max.
+- Recommended for indexing workloads: `type: exponential_backoff`, `max_retries: 8`, `base_delay: 2.0`, `max_delay: 30`, `jitter: true`.
+- Model-level retry settings apply to indexing operations that use that model, including description summarization inside `extract_graph`.
 - rate_limit **RateLimitConfig|None** - Rate limit settings. default=`None`, no rate limiting.
   - type **sliding_window** - Type of rate limit approach. default=`sliding_window`
   - period_in_seconds **int|None** - Window size for `sliding_window` rate limiting. default=`60`, limit requests per minute.
