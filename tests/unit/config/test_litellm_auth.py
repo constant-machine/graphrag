@@ -6,7 +6,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from graphrag_llm._litellm_auth import build_litellm_auth_binding
 from graphrag_llm.config import AuthMethod, ModelConfig
 
@@ -70,13 +69,11 @@ def test_build_litellm_auth_binding_shell_command_injects_api_key():
             model_config=model_config,
             azure_cognitive_services_audience="https://cognitiveservices.azure.com/.default",
         )
-        args = binding.prepare_request(
-            {
-                "model": "openai/gpt-4o",
-                "azure_ad_token": "stale-token",
-                "azure_ad_token_provider": object(),
-            }
-        )
+        args = binding.prepare_request({
+            "model": "openai/gpt-4o",
+            "azure_ad_token": "stale-token",
+            "azure_ad_token_provider": object(),
+        })
 
     assert binding.static_args == {}
     assert args["api_key"] == "shell-token"
@@ -103,13 +100,11 @@ async def test_build_litellm_auth_binding_shell_command_injects_azure_token_asyn
         "graphrag_llm._litellm_auth.ShellCommandTokenProvider.get_token_async",
         new=AsyncMock(return_value="azure-shell-token"),
     ):
-        args = await binding.prepare_request_async(
-            {
-                "model": "azure/gpt-4o",
-                "api_key": "stale-key",
-                "azure_ad_token_provider": object(),
-            }
-        )
+        args = await binding.prepare_request_async({
+            "model": "azure/gpt-4o",
+            "api_key": "stale-key",
+            "azure_ad_token_provider": object(),
+        })
 
     assert binding.static_args == {}
     assert args["azure_ad_token"] == "azure-shell-token"

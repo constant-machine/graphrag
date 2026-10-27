@@ -129,7 +129,9 @@ def test_litellm_builder_wires_api_key_auth(builder: BuilderCase):
     )
     sync_fn, _ = _create_functions(builder, model_config)
 
-    with patch(builder.sync_patch, return_value=builder.response_factory()) as mock_call:
+    with patch(
+        builder.sync_patch, return_value=builder.response_factory()
+    ) as mock_call:
         sync_fn(**builder.request_kwargs)
 
     kwargs = mock_call.call_args.kwargs
@@ -155,7 +157,9 @@ def test_litellm_builder_wires_azure_managed_identity_auth(builder: BuilderCase)
     ):
         sync_fn, _ = _create_functions(builder, model_config)
 
-    with patch(builder.sync_patch, return_value=builder.response_factory()) as mock_call:
+    with patch(
+        builder.sync_patch, return_value=builder.response_factory()
+    ) as mock_call:
         sync_fn(**builder.request_kwargs)
 
     kwargs = mock_call.call_args.kwargs
@@ -243,7 +247,9 @@ async def test_litellm_builder_wires_shell_command_auth_async(
             "graphrag_llm._litellm_auth.ShellCommandTokenProvider.get_token_async",
             new=AsyncMock(return_value="async-shell-token"),
         ),
-        patch(builder.async_patch, new=AsyncMock(return_value=builder.response_factory())) as mock_call,
+        patch(
+            builder.async_patch, new=AsyncMock(return_value=builder.response_factory())
+        ) as mock_call,
     ):
         await async_fn(**builder.request_kwargs)
 

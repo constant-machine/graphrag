@@ -122,7 +122,9 @@ def test_invalidate_token_without_expected_token_clears_cache():
 
 def test_get_token_failed_command_raises():
     """A non-zero exit from the command raises CalledProcessError."""
-    with patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "bad-cmd")):
+    with patch(
+        "subprocess.run", side_effect=subprocess.CalledProcessError(1, "bad-cmd")
+    ):
         provider = ShellCommandTokenProvider("bad-cmd")
         with pytest.raises(subprocess.CalledProcessError):
             provider.get_token()

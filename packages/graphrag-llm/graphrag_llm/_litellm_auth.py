@@ -153,9 +153,8 @@ class LiteLLMAuthBinding:
         self, args: dict[str, Any], exception: BaseException
     ) -> dict[str, Any] | None:
         """Refresh async request authentication after an authentication failure."""
-        if (
-            self.refresh_request_async_fn is None
-            or not _is_authentication_error(exception)
+        if self.refresh_request_async_fn is None or not _is_authentication_error(
+            exception
         ):
             return None
         return await self.refresh_request_async_fn(args, exception)
