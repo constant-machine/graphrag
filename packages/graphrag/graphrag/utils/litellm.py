@@ -22,5 +22,5 @@ async def close_litellm_async_clients() -> None:
 
     try:
         await close_clients()
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("failed to close LiteLLM async clients", exc_info=True)

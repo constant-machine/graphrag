@@ -16,8 +16,8 @@ from graphrag.callbacks.console_workflow_callbacks import ConsoleWorkflowCallbac
 from graphrag.config.enums import IndexingMethod
 from graphrag.config.load_config import load_config
 from graphrag.index.validate_config import validate_config_names
-from graphrag.utils.litellm import close_litellm_async_clients
 from graphrag.utils.cli import redact
+from graphrag.utils.litellm import close_litellm_async_clients
 
 # Ignore warnings from numba
 warnings.filterwarnings("ignore", message=".*NumbaDeprecationWarning.*")

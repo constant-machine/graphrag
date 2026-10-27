@@ -8,7 +8,10 @@ from __future__ import annotations
 import asyncio
 import traceback
 from dataclasses import dataclass
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Iterable
 
 T = TypeVar("T")
 
@@ -22,7 +25,7 @@ class AsyncTaskFailure:
     stack: str
 
 
-class AsyncTaskErrorGroup(RuntimeError):
+class AsyncTaskError(RuntimeError):
     """Raised when one or more async tasks fail after all have settled."""
 
     def __init__(self, operation: str, errors: list[AsyncTaskFailure]) -> None:
@@ -39,7 +42,7 @@ class AsyncTaskErrorGroup(RuntimeError):
 
 
 async def gather_with_context(
-    awaitables: list[asyncio.Future[T] | asyncio.Task[T] | object],
+    awaitables: Iterable[Awaitable[T]],
     *,
     contexts: list[str],
     operation: str,
@@ -71,6 +74,6 @@ async def gather_with_context(
         values.append(cast("T", result))
 
     if errors:
-        raise AsyncTaskErrorGroup(operation, errors)
+        raise AsyncTaskError(operation, errors)
 
     return values

@@ -8,10 +8,10 @@ import traceback
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 from pydantic import BaseModel, Field
 
 from graphrag.index.typing.error_handler import ErrorHandlerFn
-from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 
 if TYPE_CHECKING:
     from graphrag_llm.completion import LLMCompletion

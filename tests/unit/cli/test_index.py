@@ -21,16 +21,16 @@ async def test_build_index_with_cleanup_closes_clients_on_success(monkeypatch) -
     ]
     cleanup_calls: list[str] = []
 
-    async def fake_build_index(**_kwargs):
+    async def fake_build_index(**_kwargs):  # noqa: RUF029
         return outputs
 
-    async def fake_close() -> None:
+    async def fake_close() -> None:  # noqa: RUF029
         cleanup_calls.append("closed")
 
-    monkeypatch.setattr(index_cli.api, "build_index", fake_build_index)
+    monkeypatch.setattr("graphrag.cli.index.api.build_index", fake_build_index)
     monkeypatch.setattr(index_cli, "close_litellm_async_clients", fake_close)
 
-    result = await index_cli._build_index_with_cleanup(
+    result = await index_cli._build_index_with_cleanup(  # noqa: SLF001
         config=get_default_graphrag_config(),
         method=IndexingMethod.Standard,
         is_update_run=False,
@@ -46,18 +46,18 @@ async def test_build_index_with_cleanup_closes_clients_on_success(monkeypatch) -
 async def test_build_index_with_cleanup_closes_clients_on_failure(monkeypatch) -> None:
     cleanup_calls: list[str] = []
 
-    async def fake_build_index(**_kwargs):
+    async def fake_build_index(**_kwargs):  # noqa: RUF029
         msg = "provider failure"
         raise RuntimeError(msg)
 
-    async def fake_close() -> None:
+    async def fake_close() -> None:  # noqa: RUF029
         cleanup_calls.append("closed")
 
-    monkeypatch.setattr(index_cli.api, "build_index", fake_build_index)
+    monkeypatch.setattr("graphrag.cli.index.api.build_index", fake_build_index)
     monkeypatch.setattr(index_cli, "close_litellm_async_clients", fake_close)
 
     with pytest.raises(RuntimeError, match="provider failure"):
-        await index_cli._build_index_with_cleanup(
+        await index_cli._build_index_with_cleanup(  # noqa: SLF001
             config=get_default_graphrag_config(),
             method=IndexingMethod.Standard,
             is_update_run=False,

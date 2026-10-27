@@ -13,8 +13,8 @@ from graphrag_chunking.token_chunker import split_text_on_tokens
 from graphrag_llm.tokenizer import Tokenizer
 
 from graphrag.callbacks.workflow_callbacks import WorkflowCallbacks
-from graphrag.index.utils.is_null import is_null
 from graphrag.index.utils.async_tasks import gather_with_context
+from graphrag.index.utils.is_null import is_null
 from graphrag.logger.progress import ProgressTicker, progress_ticker
 
 if TYPE_CHECKING:

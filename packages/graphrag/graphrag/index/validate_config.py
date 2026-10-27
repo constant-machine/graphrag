@@ -94,9 +94,10 @@ def _get_active_model_ids(
             model_ids.add(parameters.summarize_descriptions.completion_model_id)
         elif workflow == "extract_covariates" and parameters.extract_claims.enabled:
             model_ids.add(parameters.extract_claims.completion_model_id)
-        elif workflow == "create_community_reports":
-            model_ids.add(parameters.community_reports.completion_model_id)
-        elif workflow == "create_community_reports_text":
+        elif (
+            workflow == "create_community_reports"
+            or workflow == "create_community_reports_text"
+        ):
             model_ids.add(parameters.community_reports.completion_model_id)
         elif workflow == "generate_text_embeddings":
             model_ids.add(parameters.embed_text.embedding_model_id)

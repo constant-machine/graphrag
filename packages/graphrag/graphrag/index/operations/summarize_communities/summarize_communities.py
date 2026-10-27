@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pandas as pd
+from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 from graphrag_llm.tokenizer import Tokenizer
 
 import graphrag.data_model.schemas as schemas
@@ -27,7 +28,6 @@ from graphrag.index.operations.summarize_communities.utils import (
 )
 from graphrag.index.utils.derive_from_rows import derive_from_rows
 from graphrag.logger.progress import progress_ticker
-from graphrag_llm.retry.exceptions_to_skip import is_provider_exception
 
 if TYPE_CHECKING:
     from graphrag_llm.completion import LLMCompletion

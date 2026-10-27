@@ -196,4 +196,3 @@ async def _copy_previous_output(
     for table_name in output_table_provider.list():
         table = await output_table_provider.read_dataframe(table_name)
         await previous_table_provider.write_dataframe(table_name, table)
-

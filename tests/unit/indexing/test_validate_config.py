@@ -8,7 +8,7 @@ from graphrag.index.validate_config import (
     _warn_on_aggressive_concurrency,
     _warn_on_missing_retry,
 )
-from graphrag_llm.config import RateLimitConfig, RetryConfig
+from graphrag_llm.config import ModelConfig, RateLimitConfig, RetryConfig
 from graphrag_llm.config.types import RetryType
 
 from tests.unit.config.utils import (
@@ -22,10 +22,12 @@ def test_warn_on_aggressive_concurrency_ignores_unused_models(caplog) -> None:
     config = get_default_graphrag_config()
     config.concurrent_requests = defs.SAFE_CONCURRENT_REQUESTS_WITHOUT_RATE_LIMIT + 1
     config.workflows = ["extract_graph"]
-    config.completion_models[defs.DEFAULT_COMPLETION_MODEL_ID].rate_limit = RateLimitConfig(
-        requests_per_period=60
+    config.completion_models[
+        defs.DEFAULT_COMPLETION_MODEL_ID
+    ].rate_limit = RateLimitConfig(requests_per_period=60)
+    config.completion_models["backup_completion_model"] = ModelConfig.model_validate(
+        DEFAULT_COMPLETION_MODEL_CONFIG
     )
-    config.completion_models["backup_completion_model"] = DEFAULT_COMPLETION_MODEL_CONFIG
 
     with caplog.at_level(logging.WARNING):
         _warn_on_aggressive_concurrency(config, workflows=config.workflows)
@@ -37,8 +39,12 @@ def test_warn_on_aggressive_concurrency_reports_only_active_models(caplog) -> No
     config = get_default_graphrag_config()
     config.concurrent_requests = defs.SAFE_CONCURRENT_REQUESTS_WITHOUT_RATE_LIMIT + 1
     config.workflows = ["generate_text_embeddings"]
-    config.completion_models["backup_completion_model"] = DEFAULT_COMPLETION_MODEL_CONFIG
-    config.embedding_models["backup_embedding_model"] = DEFAULT_EMBEDDING_MODEL_CONFIG
+    config.completion_models["backup_completion_model"] = ModelConfig.model_validate(
+        DEFAULT_COMPLETION_MODEL_CONFIG
+    )
+    config.embedding_models["backup_embedding_model"] = ModelConfig.model_validate(
+        DEFAULT_EMBEDDING_MODEL_CONFIG
+    )
 
     with caplog.at_level(logging.WARNING):
         _warn_on_aggressive_concurrency(config, workflows=config.workflows)
@@ -70,7 +76,9 @@ def test_warn_on_missing_retry_ignores_unused_models(caplog) -> None:
         max_delay=30,
         jitter=True,
     )
-    config.completion_models["backup_completion_model"] = DEFAULT_COMPLETION_MODEL_CONFIG
+    config.completion_models["backup_completion_model"] = ModelConfig.model_validate(
+        DEFAULT_COMPLETION_MODEL_CONFIG
+    )
 
     with caplog.at_level(logging.WARNING):
         _warn_on_missing_retry(config, workflows=config.workflows)

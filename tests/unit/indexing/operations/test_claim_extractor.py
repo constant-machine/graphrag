@@ -2,15 +2,20 @@
 # Licensed under the MIT License
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 
 import litellm.exceptions as exceptions
 import pytest
 from graphrag.index.operations.extract_covariates.claim_extractor import ClaimExtractor
 
+if TYPE_CHECKING:
+    from graphrag_llm.completion import LLMCompletion
+
 
 class _FailingModel:
     async def completion_async(self, **_kwargs):
-        raise exceptions.BadGatewayError("provider unavailable", "", "")
+        msg = "provider unavailable"
+        raise exceptions.BadGatewayError(msg, "", "")
 
 
 class _SuccessfulModel:
@@ -24,7 +29,7 @@ class _SuccessfulModel:
 async def test_claim_extractor_reraises_provider_errors_without_local_handler() -> None:
     on_error_calls: list[tuple] = []
     extractor = ClaimExtractor(
-        model=_FailingModel(),
+        model=cast("LLMCompletion", _FailingModel()),
         extraction_prompt="{input_text}{claim_description}{entity_specs}",
         max_gleanings=0,
         on_error=lambda *args: on_error_calls.append(args),
@@ -45,7 +50,7 @@ async def test_claim_extractor_reraises_provider_errors_without_local_handler() 
 async def test_claim_extractor_logs_parsing_failures_and_continues(monkeypatch) -> None:
     on_error_calls: list[tuple] = []
     extractor = ClaimExtractor(
-        model=_SuccessfulModel(),
+        model=cast("LLMCompletion", _SuccessfulModel()),
         extraction_prompt="{input_text}{claim_description}{entity_specs}",
         max_gleanings=0,
         on_error=lambda *args: on_error_calls.append(args),

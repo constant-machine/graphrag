@@ -5,7 +5,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 _default_exceptions_to_skip = [
     "BadRequestError",
@@ -37,7 +40,9 @@ _transient_exception_names = {
     "PoolTimeout",
 }
 
-_provider_exception_names = set(_default_exceptions_to_skip) | _transient_exception_names
+_provider_exception_names = (
+    set(_default_exceptions_to_skip) | _transient_exception_names
+)
 
 
 def _extract_status_code(exception: BaseException) -> int | None:
@@ -60,7 +65,7 @@ def is_provider_exception(exception: BaseException) -> bool:
         return True
 
     module_name = exception.__class__.__module__
-    if module_name.startswith("litellm") or module_name.startswith("openai"):
+    if module_name.startswith(("litellm", "openai")):
         return True
 
     return _extract_status_code(exception) is not None
@@ -72,13 +77,15 @@ def _is_permanent_provider_exception(exception: BaseException) -> bool:
         return True
 
     status_code = _extract_status_code(exception)
-    if status_code is not None and 400 <= status_code < 500 and status_code not in {
-        408,
-        429,
-    }:
-        return True
-
-    return False
+    return (
+        status_code is not None
+        and 400 <= status_code < 500
+        and status_code
+        not in {
+            408,
+            429,
+        }
+    )
 
 
 def should_skip_retry(
@@ -106,7 +113,4 @@ def should_skip_retry(
     if isinstance(exception, (ConnectionError, TimeoutError)):
         return False
 
-    if _is_permanent_provider_exception(exception):
-        return True
-
-    return False
+    return _is_permanent_provider_exception(exception)

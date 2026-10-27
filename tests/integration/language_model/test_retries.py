@@ -337,7 +337,8 @@ def test_unknown_provider_exceptions_retry_by_default(config: RetryConfig) -> No
     def mock_func():
         nonlocal retries
         retries += 1
-        raise UnknownLiteLLMError("Oh no!")
+        msg = "Oh no!"
+        raise UnknownLiteLLMError(msg)
 
     with pytest.raises(UnknownLiteLLMError, match="Oh no!"):
         retry_service.retry(func=mock_func, input_args={})
@@ -368,7 +369,8 @@ def test_unknown_provider_exceptions_follow_status_code_classification(
     def mock_func():
         nonlocal retries
         retries += 1
-        raise UnknownLiteLLMStatusError("Oh no!", status_code)
+        msg = "Oh no!"
+        raise UnknownLiteLLMStatusError(msg, status_code)
 
     with pytest.raises(UnknownLiteLLMStatusError, match="Oh no!"):
         retry_service.retry(func=mock_func, input_args={})

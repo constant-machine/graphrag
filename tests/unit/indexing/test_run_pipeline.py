@@ -16,21 +16,19 @@ from tests.unit.config.utils import get_default_graphrag_config
 
 @pytest.mark.asyncio
 async def test_run_pipeline_persists_failed_status() -> None:
-    async def ok_workflow(_config, _context):
+    async def ok_workflow(_config, _context):  # noqa: RUF029
         return WorkflowFunctionOutput(result={"ok": True})
 
-    async def failing_workflow(_config, _context):
+    async def failing_workflow(_config, _context):  # noqa: RUF029
         msg = "provider failure"
         raise RuntimeError(msg)
 
     config = get_default_graphrag_config()
     context = create_run_context()
-    pipeline = Pipeline(
-        [
-            ("load", ok_workflow),
-            ("extract_graph", failing_workflow),
-        ]
-    )
+    pipeline = Pipeline([
+        ("load", ok_workflow),
+        ("extract_graph", failing_workflow),
+    ])
 
     results = [result async for result in _run_pipeline(pipeline, config, context)]
 
@@ -47,7 +45,7 @@ async def test_run_pipeline_persists_failed_status() -> None:
 
 @pytest.mark.asyncio
 async def test_run_pipeline_persists_success_status() -> None:
-    async def workflow(_config, _context):
+    async def workflow(_config, _context):  # noqa: RUF029
         return WorkflowFunctionOutput(result={"ok": True})
 
     config = get_default_graphrag_config()
@@ -67,12 +65,12 @@ async def test_run_pipeline_persists_success_status() -> None:
 
 @pytest.mark.asyncio
 async def test_run_pipeline_does_not_close_litellm_clients(monkeypatch) -> None:
-    async def workflow(_config, _context):
+    async def workflow(_config, _context):  # noqa: RUF029
         return WorkflowFunctionOutput(result={"ok": True})
 
     cleanup_calls: list[str] = []
 
-    async def fake_close() -> None:
+    async def fake_close() -> None:  # noqa: RUF029
         cleanup_calls.append("closed")
 
     monkeypatch.setattr(

@@ -4,7 +4,7 @@
 import asyncio
 
 import pytest
-from graphrag.index.utils.async_tasks import AsyncTaskErrorGroup, gather_with_context
+from graphrag.index.utils.async_tasks import AsyncTaskError, gather_with_context
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_gather_with_context_waits_for_all_and_reports_context() -> None:
         msg = "boom"
         raise RuntimeError(msg)
 
-    with pytest.raises(AsyncTaskErrorGroup, match="item-2"):
+    with pytest.raises(AsyncTaskError, match="item-2"):
         await gather_with_context(
             [slow_success(), fast_failure()],
             contexts=["item-1", "item-2"],
